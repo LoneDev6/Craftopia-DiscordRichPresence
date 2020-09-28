@@ -1,5 +1,6 @@
 # Craftopia-DiscordRichPresence
 
+![image](https://i.imgur.com/HSVag2u.png)
 
 ## Features
 
