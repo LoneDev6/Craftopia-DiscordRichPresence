@@ -1,12 +1,13 @@
-using BepInEx;
+﻿using BepInEx;
 using Oc;
 using System;
 using UnityEngine.SceneManagement;
 using UniRx;
+using Oc.Dungeon;
 
 namespace CraftopiaDiscord
 {
-    [BepInPlugin("dev.lone.craftopia.discordrichpresence", "Craftopia DiscordRichPresence", "1.0.0.0")]
+    [BepInPlugin("dev.lone.craftopia.discordrichpresence", "Craftopia DiscordRichPresence", "1.0.1")]
     [BepInProcess("Craftopia.exe")]
     public class RichPresence : BaseUnityPlugin
     {
@@ -36,39 +37,56 @@ namespace CraftopiaDiscord
 
             RefreshAndSendActivity();
 
-            OcPl player = SingletonMonoBehaviour<OcNetMng>.FindObjectOfType<OcPl>();
-            if (player != null)
+            if (NetWrapper.LocalPlayer.IsValid)
             {
+                NetWrapper.LocalPlayer.Stats.RegisterAddExpCallback((long exp) => {
+                    UnityEngine.Debug.Log($"AddExpEvent +{exp}");
+                    RefreshAndSendActivity();
+                });
                 UnityEngine.Debug.Log("------ Registered AddExpEvent");
-                OcPlLevelCtrl levelCtrl = player.PlLevelCtrl;
-                levelCtrl.AddExpEvent += LevelCtrl_AddExpEvent;
+
+                NetWrapper.LocalPlayer.RegisterEnterExitDungeonCallback((int dungeonIndex) => {
+
+                    if(NetWrapper.LocalPlayer.GetDungeonData(dungeonIndex) == null)
+                        UnityEngine.Debug.Log($"ExitDungeon");
+                    else
+                        UnityEngine.Debug.Log($"EnterDungeon: {NetWrapper.LocalPlayer.GetDungeonData(dungeonIndex).DungeonName}");
+                    RefreshAndSendActivity();
+                });
+                UnityEngine.Debug.Log("------ Registered EnterDungeon");
             }
         }
 
-        private void LevelCtrl_AddExpEvent(long exp)
-        {
-            UnityEngine.Debug.Log($"AddExpEvent +{exp}");
-            RefreshAndSendActivity();
-        }
-
-
         private Discord.Activity BuildActivity()
         {
-            string currentSceneName = SceneManager.GetActiveScene().name;
-            return new Discord.Activity
+            var activity = new Discord.Activity
             {
-                Details = GetGameDetailsBySceneName(currentSceneName), //top
-                State = GetGameStateBySceneName(currentSceneName), //bottom
+                Details = GetGameDetails(), //top
+                State = GetGameState(), //bottom
                 Assets = new Discord.ActivityAssets
                 {
-                    LargeImage = "main"
+                    LargeImage = GetLargeImage()
                 },
                 Timestamps = new Discord.ActivityTimestamps
                 {
                     Start = startTime
                 }
             };
+
+            if(NetWrapper.LocalPlayer.IsInsideADungeon)
+            {
+                activity.Assets.SmallImage = "main";
+                activity.Assets.SmallText = NetWrapper.LocalPlayer.CurrentDungeon.DungeonName;
+            }
+            else
+            {
+                activity.Assets.SmallImage = null;
+                activity.Assets.SmallText = null;
+            }
+
+            return activity;
         }
+
 
         private void RefreshAndSendActivity()
         {
@@ -78,9 +96,19 @@ namespace CraftopiaDiscord
             });
         }
 
-        string GetGameDetailsBySceneName(string scene)
+        private string GetLargeImage()
         {
-            switch(scene)
+            if(NetWrapper.LocalPlayer.IsInsideADungeon)
+            {
+                return "dungeon";
+            }
+            return "main";
+        }
+
+        private string GetGameDetails()
+        {
+            string scene = SceneManager.GetActiveScene().name;
+            switch (scene)
             {
                 case "OcScene_Home":
                     return "Main menu";
@@ -91,12 +119,13 @@ namespace CraftopiaDiscord
                 //    return null;
 
                 default:
-                    return $"Level {NetWrapper.PlayerLevel} ({NetWrapper.PlayerExp}/{NetWrapper.PlayerNextLevelExp}xp)";
+                    return $"Level {NetWrapper.LocalPlayer.Stats.Level} ({NetWrapper.LocalPlayer.Stats.PlayerExp}/{NetWrapper.LocalPlayer.Stats.PlayerNextLevelExp}xp)";
             }
         }
 
-        private string GetGameStateBySceneName(string scene)
+        private string GetGameState()
         {
+            string scene = SceneManager.GetActiveScene().name;
             switch (scene)
             {
                 case "OcScene_Home":
@@ -105,7 +134,8 @@ namespace CraftopiaDiscord
 
                 //case "OcScene_DevTest_yohei_Tutorial_0728_MS": //first island scene
                 default:
-                    return $"{(NetWrapper.IsMultiplayer ? $"Multiplayer ({NetWrapper.ConnectedPlayersCount} of {NetWrapper.MaxPlayers})" : "Singleplayer")} ";
+                    string currentActivity = (NetWrapper.LocalPlayer.IsInsideADungeon ? "In a Dungeon" : (NetWrapper.IsMultiplayer ? "Multiplayer" : "Singleplayer"));
+                    return $"{currentActivity} {(NetWrapper.IsMultiplayer ? $"({NetWrapper.ConnectedPlayersCount} of {NetWrapper.MaxPlayers})" : "")}";
             }
         }
     }
