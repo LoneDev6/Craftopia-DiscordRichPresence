@@ -15,9 +15,9 @@ namespace CraftopiaDiscord
 
         public static int MaxPlayers => OcNetMng.MAX_PLAYER_NUM;
         public static int ConnectedPlayersCount => SingletonMonoBehaviour<OcNetMng>.Inst.ConnectPlayerNum;
-        public static byte PlayerLevel => SingletonMonoBehaviour<OcNetMng>.FindObjectOfType<OcPl>().PlLevelCtrl.Level.Value;
+        public static byte PlayerLevel => OcPlMaster.Inst.PlLevelCtrl.Level.Value;
         public static bool IsMultiplayer => SingletonMonoBehaviour<OcNetMng>.Inst.isMutilPlay;
-        public static long PlayerExp => SingletonMonoBehaviour<OcNetMng>.FindObjectOfType<OcPl>().PlLevelCtrl.Exp.Value;
+        public static long PlayerExp => OcPlMaster.Inst.PlLevelCtrl.Exp.Value;
         public static long PlayerNextLevelExp
         {
             get
