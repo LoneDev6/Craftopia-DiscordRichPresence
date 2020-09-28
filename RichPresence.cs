@@ -6,7 +6,7 @@ using UniRx;
 
 namespace CraftopiaDiscord
 {
-    [BepInPlugin("dev.lone.craftopia.discordrichpresence", "Craftopia DiscordRichPresence", "1.0.0.0")]
+    [BepInPlugin("dev.lone.craftopia.discordrichpresence", "Craftopia DiscordRichPresence", "1.0.1")]
     [BepInProcess("Craftopia.exe")]
     public class RichPresence : BaseUnityPlugin
     {
