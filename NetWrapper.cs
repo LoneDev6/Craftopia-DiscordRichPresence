@@ -11,22 +11,27 @@ namespace CraftopiaDiscord
 {
     class NetWrapper
     {
+        private static FieldInfo CACHED_requirNextLevelUpExp;
+
         public static int MaxPlayers => OcNetMng.MAX_PLAYER_NUM;
-
         public static int ConnectedPlayersCount => SingletonMonoBehaviour<OcNetMng>.Inst.ConnectPlayerNum;
-
         public static byte PlayerLevel => SingletonMonoBehaviour<OcNetMng>.FindObjectOfType<OcPl>().PlLevelCtrl.Level.Value;
-
         public static bool IsMultiplayer => SingletonMonoBehaviour<OcNetMng>.Inst.isMutilPlay;
-
         public static long PlayerExp => SingletonMonoBehaviour<OcNetMng>.FindObjectOfType<OcPl>().PlLevelCtrl.Exp.Value;
-        
         public static long PlayerNextLevelExp
         {
             get
             {
-                OcPlLevelCtrl levelCtrl = SingletonMonoBehaviour<OcNetMng>.FindObjectOfType<OcPl>().PlLevelCtrl;
-                return ((LongReactiveProperty)typeof(OcPlLevelCtrl).GetField("requirNextLevelUpExp", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(levelCtrl)).Value;
+                if (CACHED_requirNextLevelUpExp == null)
+                    CACHED_requirNextLevelUpExp = typeof(OcPlLevelCtrl).GetField("requirNextLevelUpExp", BindingFlags.NonPublic | BindingFlags.Instance);
+
+                OcPl player = SingletonMonoBehaviour<OcNetMng>.FindObjectOfType<OcPl>();
+                if (player == null)
+                    return -1;
+                OcPlLevelCtrl levelCtrl = player.PlLevelCtrl;
+                if (player == null)
+                    return -1;
+                return ((LongReactiveProperty)CACHED_requirNextLevelUpExp.GetValue(levelCtrl)).Value;
             }
         }
     }
